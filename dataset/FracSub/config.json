@@ -1,0 +1,8 @@
+{
+  "dataset": "FracSub",
+  "qMatrixPath": "dataset/FracSub/q.csv",
+  "dataPath": "dataset/FracSub/data.csv",
+  "studentNumber": 536,
+  "questionNumber": 20,
+  "knowledgeNumber": 8
+}
