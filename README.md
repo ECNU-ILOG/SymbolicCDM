@@ -4,6 +4,8 @@ The code for the paper "Symbolic Cognitive Diagnosis via Hybrid Optimization for
 published in AAAI 2024. The main paper and the appendix are in the `main.pdf` and `appendix.pdf` respectively, which are 
 contained in the folder named paper.
 
+![Framework](asset/img.png)
+
 ## Requirements
 
 ## Reproducing
