@@ -1,16 +1,21 @@
-from torch.utils.data import Dataset
-from deap.gp import Primitive
-from inspect import isclass
-from pandas import DataFrame
+import torch
 import numpy as np
 import random
-import ray
+import operator
 
-from .operators import tanh, dot
+from pandas import DataFrame
+from deap.gp import Primitive
+from inspect import isclass
+from torch.utils.data import TensorDataset, Dataset, DataLoader
+
+from .operators import sigmoid
 
 
 class StudentDataSet(Dataset):
     def __init__(self, loaded_data):
+        """
+        This class is designed for transforming loaded_data from np.ndarray to Dataset.
+        """
         self.data = loaded_data
 
     def __len__(self):
@@ -20,13 +25,33 @@ class StudentDataSet(Dataset):
         return self.data[idx]
 
 
-def initInteractionFunction(q_matrix: np.ndarray,
-                            proficiency_level: np.ndarray,
-                            discrimination: np.ndarray, ):
-    return dot(discrimination * proficiency_level, q_matrix)
+def exam(test_set, proficiency, difficulty, discrimination, interaction_func):
+    """
+    Simulate the interaction between students and questions.
+
+    :param test_set: test set excluding the training data
+    :param proficiency: proficiency level of each student
+    :param difficulty: difficulty of each knowledge attributes in each questions
+    :param discrimination: discrimination of questions
+    :param interaction_func: compiled interaction function from genetic programming
+    :return: prediction of response `y_pred` and true labels `y_true`
+    """
+    y_pred, y_true = [], []
+    for batch_data in test_set:
+        student_id_batch, question_batch, q_matrix_batch, y = list(map(np.array, batch_data))
+        for student_id, question, q_matrix in zip(student_id_batch, question_batch, q_matrix_batch):
+            p = sigmoid(proficiency[student_id])
+            dk = sigmoid(difficulty[question])
+            de = sigmoid(discrimination[question])
+            pred = sigmoid(interaction_func(de, p - dk, q_matrix)).item()
+            y_pred.append(pred)
+        y_true.extend(y.tolist())
+    y_pred = np.array(y_pred)
+    y_pred = y_pred.tolist()
+    return y_pred, y_true
 
 
-def printLogs(metric, headers, title):
+def print_logs(metric, headers, title):
     print(title)
     df_string = DataFrame(data=[metric], columns=headers).to_string(index=False)
     print("-" * (len(df_string) // 2))
@@ -34,49 +59,26 @@ def printLogs(metric, headers, title):
     print("-" * (len(df_string) // 2))
 
 
-@ray.remote
-def parallelCompute(obj, arg: tuple):
-    obj.train(*arg)
-    return obj
+def transform(student_id, question, y, q_matrix=None):
+    """
+    Transform data to match the input of parameter optimization
+
+    :return: torch.DataLoader(batch_size=32)
+    """
+    if q_matrix is None:
+        dataset = TensorDataset(torch.tensor(student_id, dtype=torch.int64) - 1,
+                                torch.tensor(question, dtype=torch.int64) - 1,
+                                torch.tensor(y, dtype=torch.float32))
+    else:
+        q_matrix_line = q_matrix[question - 1]
+        dataset = TensorDataset(torch.tensor(student_id, dtype=torch.int64) - 1,
+                                torch.tensor(question, dtype=torch.int64) - 1,
+                                q_matrix_line,
+                                torch.tensor(y, dtype=torch.float32))
+    return DataLoader(dataset, batch_size=32)
 
 
-def exam(student_data: StudentDataSet,
-         q_matrix: np.ndarray,
-         proficiency_level: np.ndarray,
-         discrimination: np.ndarray,
-         interaction_function):
-    prediction = []
-    truth = []
-    for line in student_data:
-        # 0: studentID; 1: questionID; 2: result (right or wrong), the index of dataset begins with 1
-        proficiencyLevelLine = proficiency_level[line[0] - 1]
-        qMatrixLine = q_matrix[line[1] - 1]
-        discriminationValue = np.float64(discrimination[line[1] - 1])
-        truth.append(line[2])
-        prediction.append(tanh(interaction_function(qMatrixLine,
-                                                    proficiencyLevelLine,
-                                                    discriminationValue)))
-
-    prediction = np.array(prediction)
-    # address invalid value
-    prediction = np.nan_to_num(prediction, nan=np.random.uniform(0, 1))
-
-    truth = np.array(truth)
-    return prediction, truth
-    # student_data = np.array(student_data)
-    # student_ids = student_data[:, 0] - 1
-    # question_ids = student_data[:, 1] - 1
-    # truth = student_data[:, 2]
-    # proficiency_levels = proficiency_level[student_ids]
-    # q_matrix_lines = q_matrix[question_ids]
-    # discrimination_values = discrimination[question_ids]
-    # predictions = interaction_function(q_matrix_lines, proficiency_levels, discrimination_values)
-    # predictions = tanh(predictions)
-    # predictions = np.nan_to_num(predictions, nan=np.random.uniform(0, 1))
-    # return predictions, truth
-
-
-def mutUniformWithPruning(individual, pset, pruning=0.5):
+def mut_uniform_with_pruning(individual, pset, pruning=0.5):
     rand = np.random.uniform(0, 1)
     if rand < pruning:
         # pruning tree
@@ -131,54 +133,21 @@ def mutUniformWithPruning(individual, pset, pruning=0.5):
     return individual,
 
 
-def cxSimulatedBinary(ind1, ind2, eta):
-    """Executes a simulated binary crossover that modify in-place the input
-    individuals. The simulated binary crossover expects :term:`sequence`
-    individuals of floating point numbers.
-
-    :param ind1: The first individual participating in the crossover.
-    :param ind2: The second individual participating in the crossover.
-    :param eta: Crowding degree of the crossover. A high eta will produce
-                children resembling to their parents, while a small eta will
-                produce solutions much more different.
-    :returns: A tuple of two individuals.
-
-    This function uses the numpy.random to generate random number to support
-    matrix calculation. (This function is modified based on the deap library)
-    """
-    size = min(len(ind1), len(ind2))
-    for i in range(size):
-        rand = np.random.uniform(0, 1, ind1[i].shape)
-        beta = np.where(rand >= 0.5, 2 * rand, 1 / 2 * (1 - rand))
-        beta **= 1 / (eta + 1)
-        x1 = ind1[i]
-        x2 = ind2[i]
-        ind1[i] = 0.5 * (((1 + beta) * x1) + ((1 - beta) * x2))
-        ind2[i] = 0.5 * (((1 - beta) * x1) + ((1 + beta) * x2))
-
-    return ind1, ind2,
+def sel_random(individuals, k):
+    candidates = individuals
+    return [random.choice(candidates) for i in range(k)]
 
 
-def mutGaussian(individual, mu, sigma):
-    """This function applies a gaussian mutation of mean *mu* and standard
-    deviation *sigma* on the input individual. This mutation expects a
-    :term:`sequence` individual composed of real valued attributes.
-    The *indpb* argument is the probability of each attribute to be mutated.
+def sel_tournament(individuals, k, tournament_size, fit_attr="fitness"):
+    chosen = []
+    for i in range(k):
+        aspirants = sel_random(individuals, tournament_size)
+        chosen.append(max(aspirants, key=operator.attrgetter(fit_attr)))
+    return chosen
 
-    :param individual: Individual to be mutated.
-    :param mu: Mean or :term:`python:sequence` of means for the
-               gaussian addition mutation.
-    :param sigma: Standard deviation or :term:`python:sequence` of
-                  standard deviations for the gaussian addition mutation.
-    :returns: A tuple of one individual.
 
-    This function uses the numpy.random to generate random number to support
-    matrix calculation. (This function is modified based on the deap library)
-    """
-    lr = 0.1
-    size = len(individual)
-    for i in range(size):
-        # garanteen positive
-        individual[i] = individual[i] + lr * np.random.normal(mu, sigma, individual[i].shape)
-
-    return individual,
+def init_interaction_function(discrimination, proficiency, q_matrix_line):
+    if type(proficiency) is np.ndarray:
+        return discrimination * np.sum(proficiency * q_matrix_line)
+    else:
+        return discrimination * (proficiency * q_matrix_line).sum(dim=1).unsqueeze(1)

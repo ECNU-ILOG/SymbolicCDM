@@ -1,30 +1,33 @@
 import numpy as np
+import scipy.special
+import torch
 
 
-# Since most values fall between 0 and 1, offset is needed
-def sigmoid(x, offset=0.5):
-    ret = 1 / (1 + np.exp(-(x - offset)))
-    return ret
+def add(x, y):
+    return x + y
 
 
-def dot(x: np.ndarray, y: np.ndarray):
-    return np.sum(x * y)
+def mul(x, y):
+    return x * y
 
 
-# Tanh function
-def tanh(x, offset=0.5, sharp=2):
-    return np.tanh(sharp * (x - offset)) / 2 + 0.5
+def dot(x, y):
+    if type(x) is np.ndarray and type(y) is np.ndarray:
+        return np.sum(x * y, dtype=np.float64)
+    else:
+        return (x * y).sum(dim=1).unsqueeze(1)
 
 
-def sigArctan(x):
-    return sigmoid(2 * np.pi * np.arctan(x))
+def sigmoid(x):
+    if type(x) is np.ndarray or type(x) is np.float64 or type(x) is np.float32:
+        # to avoid overflow
+        return scipy.special.expit(x)
+    else:
+        return torch.sigmoid(x)
 
 
-# subtraction combined with Relu
-def relu(x):
-    return np.maximum(0, x)
-
-
-def reluSub(x, y):
-    return relu(x - y)
-
+def tanh(x):
+    if type(x) is np.ndarray or type(x) is np.float64 or type(x) is np.float32:
+        return np.tanh(x)
+    else:
+        return torch.tanh(x)

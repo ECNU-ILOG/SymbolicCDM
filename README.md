@@ -59,7 +59,7 @@ Specifically, `config.json` records all necessary settings of dataset like the n
 [int, student_idn],[int, question_idm],[0/1, response to question_idm]
 ```
 
-`q.csv` contains the relevant between exercises and knowledge attributes. Each entry in the $i$-th row and the $j$-th column means
+`q.csv` contains the relevant between questions and knowledge attributes. Each entry in the $i$-th row and the $j$-th column means
 whether the $i$-th question involves the $j$-th knowledge attributes.
 
 #### Step 2. coding
