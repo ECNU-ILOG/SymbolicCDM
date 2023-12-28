@@ -12,8 +12,8 @@ Besides, we also upload the main paper and its appendix, titled `main.pdf` and `
 ## Requirements
 Create the running environment with conda `4.10.3` with Python `3.9.0`:
 ```
-conda create -n pedbo python==3.9
-conda activate pedbo
+conda create -n scdm python==3.9
+conda activate scdm
 ```
 
 Install all necessary packages:
