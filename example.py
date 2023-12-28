@@ -21,4 +21,4 @@ model = SymbolicCDM(q_matrix,
                     response_logs)
 print("Create Successfully")
 
-model.train(epochs=3, nn_epochs=100)
+model.train(epochs=2, nn_epochs=100)
