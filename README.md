@@ -7,8 +7,6 @@ Besides, we also upload the main paper and its appendix, titled `main.pdf` and `
 
 ![Framework](asset/img.png)
 
-**Should you have any questions, add issues in this repository. We will try our best to address your concerns.**
-
 ## Requirements
 Create the running environment with conda `4.10.3` with Python `3.9.0`:
 ```
