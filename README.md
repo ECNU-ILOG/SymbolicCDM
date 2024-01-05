@@ -110,7 +110,7 @@ SymbolicCDM:
            Qian, Hong and 
            Zhang, Wei and 
            Zhou, Aimin},
- booktitle = {Proceedings of the 38th AAAI Conference on Artificial Intelligence},
+ booktitle = {Proceedings of the 38th {AAAI} Conference on Artificial Intelligence},
  title = {Symbolic Cognitive Diagnosis via Hybrid Optimization for Intelligent Education Systems},
  year = {2024},
  address = {Vancouver, Canada},
