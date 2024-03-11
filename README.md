@@ -68,8 +68,6 @@ Refer to the `example.py`, you can change the path to different configuration fi
 python example.py
 ```
 
-
-
 ## File Tree
 ```
 SymbolicCDM:
