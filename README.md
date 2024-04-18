@@ -1,9 +1,7 @@
 # Symbolic Cognitice Diagnosis Model (SCDM)
 
 This repository contains the code for the paper "Symbolic Cognitive Diagnosis via Hybrid Optimization for Intelligent Education Systems" 
-published in _proceedings of the 38th AAAI Conference on Artificial Intelligence_ (AAAI 2024). 
-
-Besides, we also upload the main paper and its appendix, titled `main.pdf` and `appendix.pdf` respectively in the folder named paper.
+published in _proceedings of the 38th AAAI Conference on Artificial Intelligence_ (AAAI 2024). We also upload the pre-print main paper and its appendix, titled `main.pdf` and `appendix.pdf` respectively in the folder named paper. The published edition is available at https://ojs.aaai.org/index.php/AAAI/article/view/29413.
 
 ![Framework](asset/img.png)
 
@@ -112,6 +110,6 @@ SymbolicCDM:
  title = {Symbolic Cognitive Diagnosis via Hybrid Optimization for Intelligent Education Systems},
  year = {2024},
  address = {Vancouver, Canada},
- page = {}
+ page = {14928-14936}
 }
 ```
